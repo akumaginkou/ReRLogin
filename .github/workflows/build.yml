@@ -61,6 +61,20 @@ jobs:
           Write-Host "MSBuild: $msbuild"
           Add-Content -Path $env:GITHUB_ENV -Value "MSBUILD=$msbuild"
 
+      - name: Patch OpenSSL refcount.h for C++ consumers
+        shell: pwsh
+        run: |
+          # RLogin includes OpenSSL's internal/refcount.h from C++ (/TP) TUs.
+          # The MSVC branch calls _InterlockedExchangeAdd(&refcnt->val, ...) where
+          # val is `volatile int`; C++ rejects the implicit volatile int* ->
+          # long volatile* conversion (C2665). Add an explicit cast. Idempotent.
+          $f = 'RLogin/openssl-3.5.6/include/internal/refcount.h'
+          $c = Get-Content $f -Raw
+          $c = $c -replace '_InterlockedExchangeAdd\(&refcnt->val,',    '_InterlockedExchangeAdd((long volatile *)&refcnt->val,'
+          $c = $c -replace '_InterlockedExchangeAdd_nf\(&refcnt->val,', '_InterlockedExchangeAdd_nf((long volatile *)&refcnt->val,'
+          Set-Content $f $c -NoNewline
+          Write-Host "patched refcount.h"
+
       - name: Build ReRLogin (Release x64)
         shell: cmd
         working-directory: RLogin
