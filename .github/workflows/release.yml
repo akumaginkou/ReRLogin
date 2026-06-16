@@ -1,0 +1,117 @@
+name: prerelease
+
+# Build Release|x64 on the self-hosted Windows runner and publish RLogin.exe
+# as a GitHub *pre-release*. Triggered by pushing a tag like v0.0.1-vpn-pre.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create the pre-release on (uses the current commit)'
+        required: true
+        default: v0.0.1-vpn-pre
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: [self-hosted, windows, x64, win-runner]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache built dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            RLogin/openssl-3.5.6
+            RLogin/zlib-1.3.2
+            RLogin/libiconv-1.18
+            RLogin/nettle-2.0
+          key: rerlogin-deps-x64-openssl3.5.6-zlib1.3.2-iconv1.18-nettle2.0-v1
+
+      - name: Install Perl and NASM (for OpenSSL)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Command perl -ErrorAction SilentlyContinue)) { choco install strawberryperl -y --no-progress }
+          if (-not (Get-Command nasm -ErrorAction SilentlyContinue)) { choco install nasm -y --no-progress }
+          $nasm = 'C:\Program Files\NASM'
+          if (Test-Path $nasm) { Add-Content -Path $env:GITHUB_PATH -Value $nasm }
+          $perl = 'C:\Strawberry\perl\bin'
+          if (Test-Path $perl) { Add-Content -Path $env:GITHUB_PATH -Value $perl }
+
+      - name: Build dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        shell: cmd
+        run: ci\build-deps.cmd
+
+      - name: Locate MSBuild
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+          if (-not $msbuild) { throw "MSBuild not found" }
+          Add-Content -Path $env:GITHUB_ENV -Value "MSBUILD=$msbuild"
+
+      - name: Patch OpenSSL refcount.h for C++ consumers
+        shell: pwsh
+        run: |
+          $f = 'RLogin/openssl-3.5.6/include/internal/refcount.h'
+          $c = Get-Content $f -Raw
+          $c = $c -replace '_InterlockedExchangeAdd\(&refcnt->val,',    '_InterlockedExchangeAdd((long volatile *)&refcnt->val,'
+          $c = $c -replace '_InterlockedExchangeAdd_nf\(&refcnt->val,', '_InterlockedExchangeAdd_nf((long volatile *)&refcnt->val,'
+          Set-Content $f $c -NoNewline
+
+      - name: Build ReRLogin (Release x64)
+        shell: cmd
+        working-directory: RLogin
+        run: |
+          "%MSBUILD%" RLogin.vcxproj /m /t:build /p:Configuration=Release;Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0.22621.0 /p:RunCodeAnalysis=false
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $exe = "RLogin/Release/x64/RLogin.exe"
+          if (-not (Test-Path $exe)) { throw "RLogin.exe was not produced" }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item $exe dist/RLogin.exe -Force
+          Compress-Archive -Path $exe, 'IMPLEMENTATION_NOTES.md' -DestinationPath 'dist/ReRLogin-x64-prerelease.zip' -Force
+          (Get-FileHash dist/RLogin.exe -Algorithm SHA256).Hash + "  RLogin.exe" | Out-File dist/SHA256SUMS.txt -Encoding ascii
+          Write-Host "packaged: $((Get-Item dist/RLogin.exe).Length) bytes"
+
+      - name: Upload artifact (backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLogin-exe-x64
+          path: dist/RLogin.exe
+          retention-days: 7
+
+      - name: Publish pre-release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $tag = $env:GITHUB_REF_NAME } else { $tag = '${{ github.event.inputs.tag }}' }
+          $notes = @"
+          **Pre-release** build of ReRLogin (fork of kmiya-culti/RLogin) with the
+          per-session **L2TP/IPsec (PSK) VPN** feature.
+
+          - Routes only a single RLogin session through an L2TP/IPsec VPN via the
+            Windows RAS stack + per-socket ``IP_UNICAST_IF`` binding (split tunnel,
+            ephemeral phonebook entry). See ``IMPLEMENTATION_NOTES.md``.
+          - Built Release\|x64 with VS2022 Build Tools (v143) + MFC, OpenSSL 3.5.6.
+
+          ⚠️ Unsigned. The VPN **settings UI is not included yet** (storage + runtime
+          path are wired). Not yet validated against a live L2TP/IPsec server.
+          "@
+          gh release delete $tag --yes 2>$null
+          gh release create $tag dist/RLogin.exe dist/ReRLogin-x64-prerelease.zip dist/SHA256SUMS.txt `
+            --prerelease --target $env:GITHUB_SHA --title "ReRLogin VPN preview ($tag)" --notes $notes
+          Write-Host "published pre-release $tag"

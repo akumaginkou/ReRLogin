@@ -11,6 +11,7 @@ on:
       - feat/l2tp-ipsec-per-session
     paths-ignore:
       - '**/*.md'
+      - '.github/workflows/**'
 
 jobs:
   build:
