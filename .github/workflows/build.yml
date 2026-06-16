@@ -5,11 +5,6 @@ name: build-windows
 # on-demand poller spin up win-runner2.
 
 on:
-  push:
-    branches:
-      - feat/l2tp-ipsec-per-session
-    paths-ignore:
-      - '**/*.md'
   workflow_dispatch:
 
 jobs:

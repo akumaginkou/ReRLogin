@@ -1,0 +1,46 @@
+name: probe-env
+
+# Lightweight probe of the self-hosted Windows runner: what build tooling
+# is actually present (Visual Studio C++/MFC, MSBuild, cl, vswhere, etc.).
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: [self-hosted, windows, x64, win-runner]
+    timeout-minutes: 15
+    steps:
+      - name: Probe toolchain
+        shell: pwsh
+        run: |
+          function show($n,$c){ $p = (Get-Command $c -ErrorAction SilentlyContinue).Source; Write-Host ("{0,-10}: {1}" -f $n, ($(if($p){$p}else{'NOT FOUND'}))) }
+          Write-Host "=== OS ==="
+          (Get-CimInstance Win32_OperatingSystem).Caption
+          Write-Host "=== tools on PATH ==="
+          show "cl"       cl
+          show "msbuild"  msbuild
+          show "nmake"    nmake
+          show "perl"     perl
+          show "nasm"     nasm
+          show "choco"    choco
+          show "git"      git
+          show "tar"      tar
+          show "curl"     curl
+          Write-Host "=== vswhere / VS instances ==="
+          $vsw = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vsw) {
+            Write-Host "vswhere: $vsw"
+            & $vsw -products * -property installationPath
+            Write-Host "--- with C++ x64 tools ---"
+            & $vsw -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            Write-Host "--- with MFC ---"
+            & $vsw -latest -requires Microsoft.VisualStudio.Component.VC.ATLMFC -property installationPath
+          } else {
+            Write-Host "vswhere NOT present at standard path"
+          }
+          Write-Host "=== any vswhere anywhere ==="
+          Get-ChildItem -Path C:\ -Filter vswhere.exe -Recurse -ErrorAction SilentlyContinue -Depth 5 | Select -First 5 FullName
+          Write-Host "=== VS install roots ==="
+          Get-ChildItem "C:\Program Files\Microsoft Visual Studio","C:\Program Files (x86)\Microsoft Visual Studio" -ErrorAction SilentlyContinue | Select FullName
+          Write-Host "=== MSBuild.exe search ==="
+          Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio","C:\Program Files (x86)\Microsoft Visual Studio","C:\Program Files\dotnet" -Filter MSBuild.exe -Recurse -ErrorAction SilentlyContinue -Depth 6 | Select -First 5 FullName
