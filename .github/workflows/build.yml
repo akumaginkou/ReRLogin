@@ -1,0 +1,76 @@
+name: build-windows
+
+# Builds ReRLogin (Release|x64) on the self-hosted Windows runner.
+# Pushing this / dispatching it queues a job whose labels make the org's
+# on-demand poller spin up win-runner2.
+
+on:
+  push:
+    branches:
+      - feat/l2tp-ipsec-per-session
+    paths-ignore:
+      - '**/*.md'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: [self-hosted, windows, x64, win-runner]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache built dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            RLogin/RLogin/openssl-3.5.6
+            RLogin/RLogin/zlib-1.3.2
+            RLogin/RLogin/libiconv-1.18
+            RLogin/RLogin/nettle-2.0
+          key: rerlogin-deps-x64-openssl3.5.6-zlib1.3.2-iconv1.18-nettle2.0-v1
+
+      - name: Install Perl and NASM (for OpenSSL)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Command perl -ErrorAction SilentlyContinue)) {
+            choco install strawberryperl -y --no-progress
+          }
+          if (-not (Get-Command nasm -ErrorAction SilentlyContinue)) {
+            choco install nasm -y --no-progress
+          }
+          # make sure the common install locations are on PATH for later steps
+          $nasm = 'C:\Program Files\NASM'
+          if (Test-Path $nasm) { Add-Content -Path $env:GITHUB_PATH -Value $nasm }
+          $perl = 'C:\Strawberry\perl\bin'
+          if (Test-Path $perl) { Add-Content -Path $env:GITHUB_PATH -Value $perl }
+
+      - name: Build dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        shell: cmd
+        run: ci\build-deps.cmd
+
+      - name: Locate MSBuild
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+          if (-not $msbuild) { throw "MSBuild not found" }
+          Write-Host "MSBuild: $msbuild"
+          Add-Content -Path $env:GITHUB_ENV -Value "MSBUILD=$msbuild"
+
+      - name: Build ReRLogin (Release x64)
+        shell: cmd
+        working-directory: RLogin/RLogin
+        run: |
+          "%MSBUILD%" RLogin.vcxproj /m /t:build /p:Configuration=Release;Platform=x64 /p:RunCodeAnalysis=false
+
+      - name: Verify output
+        shell: pwsh
+        run: |
+          $exe = "RLogin/RLogin/Release/x64/RLogin.exe"
+          if (-not (Test-Path $exe)) { throw "RLogin.exe was not produced" }
+          Write-Host "OK: $((Get-Item $exe).FullName) ($((Get-Item $exe).Length) bytes)"
+          # NOTE: artifacts are intentionally NOT uploaded (runner storage quota).
