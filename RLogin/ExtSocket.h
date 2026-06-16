@@ -98,6 +98,9 @@ public:
 	SOCKET m_Fd;
 	BOOL m_bConnect;
 
+	DWORD m_VpnIfIndex4;	// per-session VPN: bind socket via IP_UNICAST_IF
+	DWORD m_VpnIfIndex6;	// (0 = no VPN binding)
+
 	int m_RecvBufSize;
 
 	CString m_RealHostAddr;

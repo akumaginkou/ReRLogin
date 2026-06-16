@@ -9,6 +9,7 @@
 #include "RLoginView.h"
 #include "TextRam.h"
 #include "ExtSocket.h"
+#include "RasVpn.h"
 #include "Login.h"
 #include "Telnet.h"
 #include "Ssh.h"
@@ -86,6 +87,7 @@ CRLoginDoc::CRLoginDoc()
 {
 	m_DocSeqNumber = 0;
 	m_pSock = NULL;
+	m_pRasVpn = NULL;
 	m_TextRam.m_pDocument = this;
 	m_pLogFile = NULL;
 	m_pBPlus = NULL;
@@ -2370,6 +2372,32 @@ SKIPINPUT:
 	case PROTO_PIPE:    m_pSock = new CPipeSock(this);   break; // pipe console
 	}
 
+	// Per-session L2TP/IPsec(PSK) VPN: bring the tunnel up *before* the
+	// socket is opened, then bind only this session to the VPN adapter via
+	// IP_UNICAST_IF (see CFifoSocket::SocketLoop). The tunnel is a split
+	// tunnel, so the rest of the system is unaffected.
+	if ( m_ServerEntry.m_VpnEnable && !m_ServerEntry.m_VpnServer.IsEmpty() ) {
+		DWORD if4 = 0, if6 = 0;
+		CString verr;
+
+		m_pRasVpn = new CRasVpn;
+		if ( !m_pRasVpn->Dial(m_ServerEntry.m_VpnServer, m_ServerEntry.m_VpnUser,
+							  m_ServerEntry.m_VpnPass, m_ServerEntry.m_VpnPsk,
+							  if4, if6, verr) ) {
+			CString msg;
+			msg.Format(_T("VPN connect failed for '%s'\n%s"), (LPCTSTR)m_ServerEntry.m_EntryName, (LPCTSTR)verr);
+			::AfxMessageBox(msg, MB_ICONERROR);
+			delete m_pRasVpn;
+			m_pRasVpn = NULL;
+			SocketClose();
+			return FALSE;
+		}
+
+		m_pRasVpn->AddRef();
+		m_pSock->m_VpnIfIndex4 = if4;
+		m_pSock->m_VpnIfIndex6 = if6;
+	}
+
 	switch(ProxyMode) {
 	case 1:	// HTTP
 	case 2:	// SOCKS4
@@ -2412,8 +2440,16 @@ void CRLoginDoc::SocketClose()
 {
 	SetSleepReq(SLEEPSTAT_CLOSE);
 
-	if ( m_pSock == NULL )
+	if ( m_pSock == NULL ) {
+		// Socket already gone, but make sure the VPN tunnel is not leaked.
+		if ( m_pRasVpn != NULL ) {
+			if ( m_pRasVpn->Release() <= 0 )
+				m_pRasVpn->HangUp();
+			delete m_pRasVpn;
+			m_pRasVpn = NULL;
+		}
 		return;
+	}
 
 	if ( m_pBPlus != NULL )
 		m_pBPlus->DoAbort();
@@ -2427,6 +2463,15 @@ void CRLoginDoc::SocketClose()
 	m_pSock->Destroy();
 	m_pSock = NULL;
 	m_TextRam.OnClose();
+
+	// Tear down the per-session VPN tunnel (last reference hangs up and
+	// deletes the ephemeral RAS entry).
+	if ( m_pRasVpn != NULL ) {
+		if ( m_pRasVpn->Release() <= 0 )
+			m_pRasVpn->HangUp();
+		delete m_pRasVpn;
+		m_pRasVpn = NULL;
+	}
 }
 void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 {

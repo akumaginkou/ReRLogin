@@ -431,6 +431,8 @@ public:
 	int m_nFamily;
 	int m_nSocketType;
 	int m_TimeOut;
+	DWORD m_VpnIfIndex4;	// per-session VPN: IP_UNICAST_IF binding (0 = none)
+	DWORD m_VpnIfIndex6;
 
 public:
 	CFifoSocket(class CRLoginDoc *pDoc, class CExtSocket *pSock);

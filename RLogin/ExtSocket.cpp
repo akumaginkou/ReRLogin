@@ -55,6 +55,9 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 
 	m_bConnect = FALSE;
 
+	m_VpnIfIndex4 = 0;
+	m_VpnIfIndex6 = 0;
+
 	m_pFifoLeft   = NULL;
 	m_pFifoMid    = NULL;
 	m_pFifoRight  = NULL;
@@ -269,6 +272,8 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 	case FIFO_TYPE_SOCKET:
 		m_pFifoLeft->m_nLimitSize = m_pDocument->m_TextRam.IsOptEnable(TO_RLTRSLIMIT) ? (m_pDocument->m_ParamTab.m_TransmitLimit * 1024) : 0;
 		PunyCodeAdress(m_RealHostAddr, host);
+		((CFifoSocket *)m_pFifoLeft)->m_VpnIfIndex4 = m_VpnIfIndex4;
+		((CFifoSocket *)m_pFifoLeft)->m_VpnIfIndex6 = m_VpnIfIndex6;
 		return ((CFifoSocket *)m_pFifoLeft)->Open(host, m_RealHostPort, m_RealRemotePort, GetFamily(), m_RealSocketType);
 
 	case FIFO_TYPE_PIPE:

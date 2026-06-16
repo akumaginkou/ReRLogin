@@ -303,6 +303,7 @@ if exist LICENSE ( powershell Compress-Archive -Path '$(OutDir)$(TargetName)$(Ta
     <ClCompile Include="EscParaDlg.cpp" />
     <ClCompile Include="ExtOptPage.cpp" />
     <ClCompile Include="ExtSocket.cpp" />
+    <ClCompile Include="RasVpn.cpp" />
     <ClCompile Include="Fifo.cpp" />
     <ClCompile Include="FileUpDown.cpp" />
     <ClCompile Include="FontParaDlg.cpp" />
@@ -414,6 +415,7 @@ if exist LICENSE ( powershell Compress-Archive -Path '$(OutDir)$(TargetName)$(Ta
     <ClInclude Include="EscParaDlg.h" />
     <ClInclude Include="ExtOptPage.h" />
     <ClInclude Include="ExtSocket.h" />
+    <ClInclude Include="RasVpn.h" />
     <ClInclude Include="Fifo.h" />
     <ClInclude Include="FileUpDown.h" />
     <ClInclude Include="FontParaDlg.h" />

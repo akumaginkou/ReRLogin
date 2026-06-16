@@ -23,6 +23,7 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "ExtSocket.h"
+#include "RasVpn.h"
 #include "Script.h"
 #include "ResTransDlg.h"
 #include "MsgChkDlg.h"
@@ -1691,6 +1692,10 @@ BOOL CRLoginApp::InitInstance()
 		::AfxMessageBox(CStringLoad(IDS_SOCKETS_INIT_FAILED), MB_ICONERROR);
 		return FALSE;
 	}
+
+	// Remove any "RLoginTmp_*" ephemeral VPN entries left over from a
+	// previous run that crashed before tearing the tunnel down.
+	CRasVpn::CleanupOrphans();
 
 	// opensslÇÃèâä˙âª
 #ifdef	OPENSSL_DEBUG

@@ -777,6 +777,11 @@ public:
 	CString m_ProxyPass;
 	CString m_ProxyCmd;
 	CString m_ProxySsh;
+	BOOL m_VpnEnable;		// per-session L2TP/IPsec(PSK) VPN
+	CString m_VpnServer;
+	CString m_VpnUser;
+	CString m_VpnPass;
+	CString m_VpnPsk;
 	CString m_Memo;
 	CString m_Group;
 	CString m_ScriptFile;

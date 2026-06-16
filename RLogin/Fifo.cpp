@@ -1892,6 +1892,8 @@ CFifoSocket::CFifoSocket(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFif
 	m_nSocketType = SOCK_STREAM;
 
 	m_TimeOut = 0;
+	m_VpnIfIndex4 = 0;
+	m_VpnIfIndex6 = 0;
 }
 CFifoSocket::~CFifoSocket()
 {
@@ -2083,6 +2085,18 @@ BOOL CFifoSocket::AddInfoOpen()
 		if ( (m_hSocket = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == INVALID_SOCKET ) {
 			m_nLastError = WSAGetLastError();
 			continue;
+		}
+
+		// Per-session VPN: force this socket to egress via the L2TP/IPsec
+		// adapter so that only this session's traffic enters the tunnel.
+		// IPv4 IP_UNICAST_IF takes the interface index in NETWORK byte order;
+		// IPv6 IPV6_UNICAST_IF takes it in HOST byte order.
+		if ( ai->ai_family == AF_INET && m_VpnIfIndex4 != 0 ) {
+			DWORD ifval = htonl(m_VpnIfIndex4);
+			::setsockopt(m_hSocket, IPPROTO_IP, IP_UNICAST_IF, (const char *)&ifval, sizeof(ifval));
+		} else if ( ai->ai_family == AF_INET6 && m_VpnIfIndex6 != 0 ) {
+			DWORD ifval = m_VpnIfIndex6;
+			::setsockopt(m_hSocket, IPPROTO_IPV6, IPV6_UNICAST_IF, (const char *)&ifval, sizeof(ifval));
 		}
 
 		if ( m_nSocketPort != 0 ) {

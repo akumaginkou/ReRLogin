@@ -66,6 +66,9 @@
     <ClCompile Include="ExtSocket.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="RasVpn.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="FontParaDlg.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -375,6 +378,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="ExtSocket.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="RasVpn.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="FontParaDlg.h">

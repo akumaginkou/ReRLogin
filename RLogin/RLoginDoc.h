@@ -84,6 +84,7 @@ public:
 public:
 	int m_DocSeqNumber;
 	CExtSocket *m_pSock;
+	class CRasVpn *m_pRasVpn;	// per-session L2TP/IPsec VPN (NULL = none)
 	CTextRam m_TextRam;
 	CKeyNodeTab m_KeyTab;
 	CKeyMacTab m_KeyMac;

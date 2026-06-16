@@ -5749,6 +5749,11 @@ void CServerEntry::Init()
 	m_ProxySSLKeep = FALSE;
 	m_ProxyCmd.Empty();
 	m_ProxySsh.Empty();
+	m_VpnEnable = FALSE;
+	m_VpnServer.Empty();
+	m_VpnUser.Empty();
+	m_VpnPass.Empty();
+	m_VpnPsk.Empty();
 	m_BeforeEntry.Empty();
 	m_OptFixEntry.Empty();
 	m_ReEntryFlag = FALSE;
@@ -5796,6 +5801,11 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxySSLKeep   = data.m_ProxySSLKeep;
 	m_ProxyCmd       = data.m_ProxyCmd;
 	m_ProxySsh		 = data.m_ProxySsh;
+	m_VpnEnable      = data.m_VpnEnable;
+	m_VpnServer      = data.m_VpnServer;
+	m_VpnUser        = data.m_VpnUser;
+	m_VpnPass        = data.m_VpnPass;
+	m_VpnPsk         = data.m_VpnPsk;
 	m_BeforeEntry    = data.m_BeforeEntry;
 	m_OptFixEntry    = data.m_OptFixEntry;
 	m_ReEntryFlag    = data.m_ReEntryFlag;
@@ -5862,6 +5872,23 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_ProxyCmd     = (stra.GetSize() > 26 ?  stra.GetAt(26) : _T(""));
 	m_ProxySsh     = (stra.GetSize() > 27 ?  stra.GetAt(27) : _T(""));
 
+	m_VpnEnable = FALSE;
+	m_VpnServer.Empty();
+	m_VpnUser.Empty();
+	m_VpnPass.Empty();
+	m_VpnPsk.Empty();
+	if ( stra.GetSize() > 32 ) {
+		m_VpnEnable = stra.GetVal(28);
+		m_VpnServer = stra.GetAt(29);
+		m_VpnUser   = stra.GetAt(30);
+		key.DecryptStr(m_VpnPass, stra.GetAt(31));
+		key.DecryptStr(m_VpnPsk,  stra.GetAt(32));
+		if ( !m_bPassOk ) {		// password integrity check (idx 16) failed
+			m_VpnPass.Empty();
+			m_VpnPsk.Empty();
+		}
+	}
+
 	m_ProBuffer.Clear();
 
 	m_HostNameProvs  = m_HostName;
@@ -5912,6 +5939,13 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_OptFixEntry);
 	stra.Add(m_ProxyCmd);
 	stra.Add(m_ProxySsh);
+	stra.AddVal(m_VpnEnable);				// 28
+	stra.Add(m_VpnServer);					// 29
+	stra.Add(m_VpnUser);					// 30
+	key.EncryptStr(str, m_VpnPass);
+	stra.Add(str);							// 31
+	key.EncryptStr(str, m_VpnPsk);
+	stra.Add(str);							// 32
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
