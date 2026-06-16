@@ -86,12 +86,8 @@ jobs:
           (Get-FileHash dist/RLogin.exe -Algorithm SHA256).Hash + "  RLogin.exe" | Out-File dist/SHA256SUMS.txt -Encoding ascii
           Write-Host "packaged: $((Get-Item dist/RLogin.exe).Length) bytes"
 
-      - name: Upload artifact (backup)
-        uses: actions/upload-artifact@v4
-        with:
-          name: RLogin-exe-x64
-          path: dist/RLogin.exe
-          retention-days: 7
+      # NOTE: no actions/upload-artifact - the org's Actions artifact storage
+      # quota is exhausted, and release assets use separate storage anyway.
 
       - name: Publish pre-release
         shell: pwsh
