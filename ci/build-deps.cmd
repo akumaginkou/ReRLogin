@@ -30,7 +30,7 @@ rem ---- patch tool from Git for Windows --------------------------------------
 set "PATCH=%ProgramFiles%\Git\usr\bin\patch.exe"
 if not exist "%PATCH%" set "PATCH=%ProgramW6432%\Git\usr\bin\patch.exe"
 
-pushd RLogin\RLogin || exit /b 1
+pushd RLogin || exit /b 1
 
 rem ---- download sources (skip if already extracted) -------------------------
 if not exist "%OPENSSL%" (

@@ -25,10 +25,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            RLogin/RLogin/openssl-3.5.6
-            RLogin/RLogin/zlib-1.3.2
-            RLogin/RLogin/libiconv-1.18
-            RLogin/RLogin/nettle-2.0
+            RLogin/openssl-3.5.6
+            RLogin/zlib-1.3.2
+            RLogin/libiconv-1.18
+            RLogin/nettle-2.0
           key: rerlogin-deps-x64-openssl3.5.6-zlib1.3.2-iconv1.18-nettle2.0-v1
 
       - name: Install Perl and NASM (for OpenSSL)
@@ -63,14 +63,14 @@ jobs:
 
       - name: Build ReRLogin (Release x64)
         shell: cmd
-        working-directory: RLogin/RLogin
+        working-directory: RLogin
         run: |
           "%MSBUILD%" RLogin.vcxproj /m /t:build /p:Configuration=Release;Platform=x64 /p:RunCodeAnalysis=false
 
       - name: Verify output
         shell: pwsh
         run: |
-          $exe = "RLogin/RLogin/Release/x64/RLogin.exe"
+          $exe = "RLogin/Release/x64/RLogin.exe"
           if (-not (Test-Path $exe)) { throw "RLogin.exe was not produced" }
           Write-Host "OK: $((Get-Item $exe).FullName) ($((Get-Item $exe).Length) bytes)"
           # NOTE: artifacts are intentionally NOT uploaded (runner storage quota).
