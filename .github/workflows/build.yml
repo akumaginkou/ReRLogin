@@ -6,6 +6,11 @@ name: build-windows
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/l2tp-ipsec-per-session
+    paths-ignore:
+      - '**/*.md'
 
 jobs:
   build:
@@ -51,7 +56,7 @@ jobs:
         shell: pwsh
         run: |
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+          $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
           if (-not $msbuild) { throw "MSBuild not found" }
           Write-Host "MSBuild: $msbuild"
           Add-Content -Path $env:GITHUB_ENV -Value "MSBUILD=$msbuild"
