@@ -4,6 +4,11 @@ name: probe-env
 # is actually present (Visual Studio C++/MFC, MSBuild, cl, vswhere, etc.).
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/l2tp-ipsec-per-session
+    paths:
+      - .github/workflows/probe.yml
 
 jobs:
   probe:
