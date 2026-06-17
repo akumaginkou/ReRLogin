@@ -782,6 +782,7 @@ public:
 	CString m_VpnUser;
 	CString m_VpnPass;
 	CString m_VpnPsk;
+	int m_VpnStrategy;		// 0=Auto 1=L2TP/IPsec 2=IKEv2 3=SSTP 4=PPTP
 	CString m_Memo;
 	CString m_Group;
 	CString m_ScriptFile;

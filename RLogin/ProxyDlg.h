@@ -38,6 +38,7 @@ public:
 	CString m_VpnUser;
 	CString m_VpnPass;
 	CString m_VpnPsk;
+	int m_VpnStrategy;
 
 	CComboBoxHis m_ServerCombo;
 	CComboBoxHis m_UserCombo;

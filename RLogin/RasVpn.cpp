@@ -48,7 +48,7 @@ CString CRasVpn::FormatRasError(DWORD code)
 //////////////////////////////////////////////////////////////////////
 // Create the ephemeral phonebook entry + set the pre-shared key
 
-BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, CString &errMsg)
+BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, int strategy, CString &errMsg)
 {
 	DWORD rc;
 
@@ -67,7 +67,13 @@ BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, CString &errMsg)
 	// socket (IP_UNICAST_IF) goes through it.
 
 	entry.dwType           = RASET_Vpn;
-	entry.dwVpnStrategy    = VS_L2tpOnly;			// force L2TP/IPsec
+	switch ( strategy ) {
+	case 1:  entry.dwVpnStrategy = VS_L2tpOnly;  break;
+	case 2:  entry.dwVpnStrategy = VS_Ikev2Only; break;
+	case 3:  entry.dwVpnStrategy = VS_SstpOnly;  break;
+	case 4:  entry.dwVpnStrategy = VS_PptpOnly;  break;
+	default: entry.dwVpnStrategy = VS_Default;   break;
+	}
 	entry.dwEncryptionType = ET_Require;			// IPsec always encrypts
 	entry.dwFramingProtocol = RASFP_Ppp;
 	entry.dwfNetProtocols  = RASNP_Ip | RASNP_Ipv6;
@@ -89,7 +95,7 @@ BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, CString &errMsg)
 	// Store the IPsec pre-shared key for this entry.
 	// CAUTION: writing the PSK goes through the LSA secret store and may
 	// require administrator rights (see IMPLEMENTATION_NOTES.md).
-	if ( psk != NULL && psk[0] != _T('\0') ) {
+	if ( psk != NULL && psk[0] != _T('\0') && (strategy == 0 || strategy == 1 || strategy == 2) ) {
 		RASCREDENTIALS cred;
 		ZeroMemory(&cred, sizeof(cred));
 		cred.dwSize = sizeof(RASCREDENTIALS);
@@ -113,7 +119,7 @@ BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, CString &errMsg)
 
 //////////////////////////////////////////////////////////////////////
 
-BOOL CRasVpn::Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk,
+BOOL CRasVpn::Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk, int strategy,
 				   DWORD &ifIndex4, DWORD &ifIndex6, CString &errMsg)
 {
 	DWORD rc;
@@ -131,7 +137,7 @@ BOOL CRasVpn::Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk,
 		return FALSE;
 	}
 
-	if ( !SetupEntry(server, psk, errMsg) )
+	if ( !SetupEntry(server, psk, strategy, errMsg) )
 		return FALSE;
 
 	RASDIALPARAMS dp;

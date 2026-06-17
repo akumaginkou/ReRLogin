@@ -35,6 +35,7 @@ CProxyDlg::CProxyDlg(CWnd* pParent /*=NULL*/)
 	m_VpnUser    = _T("");
 	m_VpnPass    = _T("");
 	m_VpnPsk     = _T("");
+	m_VpnStrategy = 0;
 }
 
 CProxyDlg::~CProxyDlg()
@@ -65,6 +66,7 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_VPN_USER, m_VpnUser);
 	DDX_Text(pDX, IDC_VPN_PASS, m_VpnPass);
 	DDX_Text(pDX, IDC_VPN_PSK, m_VpnPsk);
+	DDX_CBIndex(pDX, IDC_VPN_STRATEGY, m_VpnStrategy);
 }
 
 
@@ -161,6 +163,17 @@ void CProxyDlg::OnProtoType(UINT nID)
 BOOL CProxyDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
+
+	CComboBox *pVpnProto = (CComboBox *)GetDlgItem(IDC_VPN_STRATEGY);
+	if ( pVpnProto != NULL ) {
+		pVpnProto->ResetContent();
+		pVpnProto->AddString(_T("Automatic"));
+		pVpnProto->AddString(_T("L2TP/IPsec"));
+		pVpnProto->AddString(_T("IKEv2"));
+		pVpnProto->AddString(_T("SSTP"));
+		pVpnProto->AddString(_T("PPTP"));
+		pVpnProto->SetCurSel(m_VpnStrategy);
+	}
 
 	// m_ProxyMode = CServerEntry::m_ProxyMode(000000mm 00000mmm)
 	// m_ProxyMode 0 == None			m_ProxyType = 0

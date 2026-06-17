@@ -2382,7 +2382,7 @@ SKIPINPUT:
 
 		m_pRasVpn = new CRasVpn;
 		if ( !m_pRasVpn->Dial(m_ServerEntry.m_VpnServer, m_ServerEntry.m_VpnUser,
-							  m_ServerEntry.m_VpnPass, m_ServerEntry.m_VpnPsk,
+							  m_ServerEntry.m_VpnPass, m_ServerEntry.m_VpnPsk, m_ServerEntry.m_VpnStrategy,
 							  if4, if6, verr) ) {
 			CString msg;
 			msg.Format(_T("VPN connect failed for '%s'\n%s"), (LPCTSTR)m_ServerEntry.m_EntryName, (LPCTSTR)verr);
