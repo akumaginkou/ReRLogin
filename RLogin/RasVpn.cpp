@@ -48,7 +48,7 @@ CString CRasVpn::FormatRasError(DWORD code)
 //////////////////////////////////////////////////////////////////////
 // Create the ephemeral phonebook entry + set the pre-shared key
 
-BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, int strategy, CString &errMsg)
+BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, int strategy, int auth, CString &errMsg)
 {
 	DWORD rc;
 
@@ -74,6 +74,10 @@ BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, int strategy, CString &err
 	case 4:  entry.dwVpnStrategy = VS_PptpOnly;  break;
 	default: entry.dwVpnStrategy = VS_Default;   break;
 	}
+	if ( auth & 1 ) entry.dwfOptions |= RASEO_RequirePAP;
+	if ( auth & 2 ) entry.dwfOptions |= RASEO_RequireCHAP;
+	if ( auth & 4 ) entry.dwfOptions |= RASEO_RequireMsCHAP2;
+
 	entry.dwEncryptionType = ET_Require;			// IPsec always encrypts
 	entry.dwFramingProtocol = RASFP_Ppp;
 	entry.dwfNetProtocols  = RASNP_Ip | RASNP_Ipv6;
@@ -119,7 +123,7 @@ BOOL CRasVpn::SetupEntry(LPCTSTR server, LPCTSTR psk, int strategy, CString &err
 
 //////////////////////////////////////////////////////////////////////
 
-BOOL CRasVpn::Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk, int strategy,
+BOOL CRasVpn::Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk, int strategy, int auth,
 				   DWORD &ifIndex4, DWORD &ifIndex6, CString &errMsg)
 {
 	DWORD rc;
@@ -137,7 +141,7 @@ BOOL CRasVpn::Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk, int 
 		return FALSE;
 	}
 
-	if ( !SetupEntry(server, psk, strategy, errMsg) )
+	if ( !SetupEntry(server, psk, strategy, auth, errMsg) )
 		return FALSE;
 
 	RASDIALPARAMS dp;

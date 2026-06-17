@@ -55,6 +55,7 @@ CSerEntPage::CSerEntPage() : CTreePage(CSerEntPage::IDD)
 	m_VpnPass = _T("");
 	m_VpnPsk = _T("");
 	m_VpnStrategy = 0;
+	m_VpnAuth = 6;
 	m_ProxyCmd = _T("");
 	m_ProxySsh = _T("");
 	m_ExtEnvStr = _T("");
@@ -165,6 +166,7 @@ void CSerEntPage::DoInit()
 	m_VpnPass     = m_pSheet->m_pEntry->m_VpnPass;
 	m_VpnPsk      = m_pSheet->m_pEntry->m_VpnPsk;
 	m_VpnStrategy = m_pSheet->m_pEntry->m_VpnStrategy;
+	m_VpnAuth = m_pSheet->m_pEntry->m_VpnAuth;
 	m_ProxyCmd    = m_pSheet->m_pEntry->m_ProxyCmd;
 	m_ProxySsh    = m_pSheet->m_pEntry->m_ProxySsh;
 	m_SSL_Keep    = m_pSheet->m_pEntry->m_ProxySSLKeep;
@@ -319,6 +321,7 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_VpnPass   = m_VpnPass;
 	m_pSheet->m_pEntry->m_VpnPsk    = m_VpnPsk;
 	m_pSheet->m_pEntry->m_VpnStrategy = m_VpnStrategy;
+	m_pSheet->m_pEntry->m_VpnAuth = m_VpnAuth;
 	m_pSheet->m_pEntry->m_Memo      = m_Memo;
 	m_pSheet->m_pEntry->m_Group     = m_Group;
 	m_pSheet->m_pEntry->m_HostNameProvs  = m_HostName;
@@ -473,6 +476,9 @@ void CSerEntPage::OnProxySet()
 	dlg.m_VpnPass    = m_VpnPass;
 	dlg.m_VpnPsk     = m_VpnPsk;
 	dlg.m_VpnStrategy = m_VpnStrategy;
+	dlg.m_VpnAuthPap     = (m_VpnAuth & 1) ? TRUE : FALSE;
+	dlg.m_VpnAuthChap    = (m_VpnAuth & 2) ? TRUE : FALSE;
+	dlg.m_VpnAuthMsChap2 = (m_VpnAuth & 4) ? TRUE : FALSE;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -492,6 +498,7 @@ void CSerEntPage::OnProxySet()
 	m_VpnPass     = dlg.m_VpnPass;
 	m_VpnPsk      = dlg.m_VpnPsk;
 	m_VpnStrategy = dlg.m_VpnStrategy;
+	m_VpnAuth = (dlg.m_VpnAuthPap ? 1 : 0) | (dlg.m_VpnAuthChap ? 2 : 0) | (dlg.m_VpnAuthMsChap2 ? 4 : 0);
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_ENTRY | UMOD_PARAMTAB);

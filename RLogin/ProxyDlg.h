@@ -39,6 +39,9 @@ public:
 	CString m_VpnPass;
 	CString m_VpnPsk;
 	int m_VpnStrategy;
+	BOOL m_VpnAuthPap;
+	BOOL m_VpnAuthChap;
+	BOOL m_VpnAuthMsChap2;
 
 	CComboBoxHis m_ServerCombo;
 	CComboBoxHis m_UserCombo;

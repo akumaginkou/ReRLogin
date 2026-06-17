@@ -36,6 +36,9 @@ CProxyDlg::CProxyDlg(CWnd* pParent /*=NULL*/)
 	m_VpnPass    = _T("");
 	m_VpnPsk     = _T("");
 	m_VpnStrategy = 0;
+	m_VpnAuthPap = FALSE;
+	m_VpnAuthChap = TRUE;
+	m_VpnAuthMsChap2 = TRUE;
 }
 
 CProxyDlg::~CProxyDlg()
@@ -67,6 +70,9 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_VPN_PASS, m_VpnPass);
 	DDX_Text(pDX, IDC_VPN_PSK, m_VpnPsk);
 	DDX_CBIndex(pDX, IDC_VPN_STRATEGY, m_VpnStrategy);
+	DDX_Check(pDX, IDC_VPN_AUTH_PAP, m_VpnAuthPap);
+	DDX_Check(pDX, IDC_VPN_AUTH_CHAP, m_VpnAuthChap);
+	DDX_Check(pDX, IDC_VPN_AUTH_MSCHAP2, m_VpnAuthMsChap2);
 }
 
 

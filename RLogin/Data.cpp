@@ -5755,6 +5755,7 @@ void CServerEntry::Init()
 	m_VpnPass.Empty();
 	m_VpnPsk.Empty();
 	m_VpnStrategy = 0;
+	m_VpnAuth = 6;
 	m_BeforeEntry.Empty();
 	m_OptFixEntry.Empty();
 	m_ReEntryFlag = FALSE;
@@ -5808,6 +5809,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_VpnPass        = data.m_VpnPass;
 	m_VpnPsk         = data.m_VpnPsk;
 	m_VpnStrategy    = data.m_VpnStrategy;
+	m_VpnAuth        = data.m_VpnAuth;
 	m_BeforeEntry    = data.m_BeforeEntry;
 	m_OptFixEntry    = data.m_OptFixEntry;
 	m_ReEntryFlag    = data.m_ReEntryFlag;
@@ -5880,6 +5882,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_VpnPass.Empty();
 	m_VpnPsk.Empty();
 	m_VpnStrategy = 0;
+	m_VpnAuth = 6;
 	if ( stra.GetSize() > 32 ) {
 		m_VpnEnable = stra.GetVal(28);
 		m_VpnServer = stra.GetAt(29);
@@ -5887,6 +5890,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 		key.DecryptStr(m_VpnPass, stra.GetAt(31));
 		key.DecryptStr(m_VpnPsk,  stra.GetAt(32));
 		m_VpnStrategy = (stra.GetSize() > 33 ? stra.GetVal(33) : 0);
+		m_VpnAuth = (stra.GetSize() > 34 ? stra.GetVal(34) : 6);
 		if ( !m_bPassOk ) {		// password integrity check (idx 16) failed
 			m_VpnPass.Empty();
 			m_VpnPsk.Empty();
@@ -5951,6 +5955,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	key.EncryptStr(str, m_VpnPsk);
 	stra.Add(str);							// 32
 	stra.AddVal(m_VpnStrategy);				// 33
+	stra.AddVal(m_VpnAuth);					// 34
 }
 
 static const ScriptCmdsDefs DocEntry[] = {

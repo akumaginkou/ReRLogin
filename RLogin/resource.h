@@ -1156,6 +1156,9 @@
 #define IDC_VPN_PASS                    2559
 #define IDC_VPN_PSK                     2560
 #define IDC_VPN_STRATEGY                2561
+#define IDC_VPN_AUTH_PAP                 2562
+#define IDC_VPN_AUTH_CHAP                2563
+#define IDC_VPN_AUTH_MSCHAP2            2564
 #define IDC_TIMEOUT                     2555
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
@@ -1319,7 +1322,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        174
 #define _APS_NEXT_COMMAND_VALUE         5165
-#define _APS_NEXT_CONTROL_VALUE         2562
+#define _APS_NEXT_CONTROL_VALUE         2565
 #define _APS_NEXT_SYMED_VALUE           681
 #endif
 #endif

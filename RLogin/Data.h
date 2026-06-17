@@ -783,6 +783,7 @@ public:
 	CString m_VpnPass;
 	CString m_VpnPsk;
 	int m_VpnStrategy;		// 0=Auto 1=L2TP/IPsec 2=IKEv2 3=SSTP 4=PPTP
+	int m_VpnAuth;			// bit0=PAP bit1=CHAP bit2=MS-CHAPv2
 	CString m_Memo;
 	CString m_Group;
 	CString m_ScriptFile;

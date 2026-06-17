@@ -42,6 +42,7 @@ public:
 	CString m_VpnPass;
 	CString m_VpnPsk;
 	int m_VpnStrategy;
+	int m_VpnAuth;
 	CString m_ExtEnvStr;
 	CString m_BeforeEntry;
 	BOOL m_UsePassDlg;

@@ -28,7 +28,7 @@ public:
 	// the interface indexes of the VPN adapter (ifIndex4 for IPv4 traffic in
 	// host order, ifIndex6 for IPv6). Either index may be 0 if that family is
 	// not present on the tunnel. On failure returns FALSE and sets errMsg.
-	BOOL Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk, int strategy,
+	BOOL Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk, int strategy, int auth,
 			  DWORD &ifIndex4, DWORD &ifIndex6, CString &errMsg);
 
 	// Tear the tunnel down and delete the ephemeral phonebook entry.
@@ -53,7 +53,7 @@ public:
 	static const TCHAR ENTRY_PREFIX[];	// "RLoginTmp_"
 
 protected:
-	BOOL SetupEntry(LPCTSTR server, LPCTSTR psk, int strategy, CString &errMsg);
+	BOOL SetupEntry(LPCTSTR server, LPCTSTR psk, int strategy, int auth, CString &errMsg);
 	BOOL ResolveIfIndex(DWORD &ifIndex4, DWORD &ifIndex6);
 	static CString FormatRasError(DWORD code);
 
