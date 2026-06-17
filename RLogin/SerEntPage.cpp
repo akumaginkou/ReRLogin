@@ -49,6 +49,11 @@ CSerEntPage::CSerEntPage() : CTreePage(CSerEntPage::IDD)
 	m_ProxyPort = _T("");
 	m_ProxyUser = _T("");
 	m_ProxyPass = _T("");
+	m_VpnEnable = FALSE;
+	m_VpnServer = _T("");
+	m_VpnUser = _T("");
+	m_VpnPass = _T("");
+	m_VpnPsk = _T("");
 	m_ProxyCmd = _T("");
 	m_ProxySsh = _T("");
 	m_ExtEnvStr = _T("");
@@ -153,6 +158,11 @@ void CSerEntPage::DoInit()
 	m_ProxyPort   = m_pSheet->m_pEntry->m_ProxyPortProvs;
 	m_ProxyUser   = m_pSheet->m_pEntry->m_ProxyUserProvs;
 	m_ProxyPass   = m_pSheet->m_pEntry->m_ProxyPassProvs;
+	m_VpnEnable   = m_pSheet->m_pEntry->m_VpnEnable;
+	m_VpnServer   = m_pSheet->m_pEntry->m_VpnServer;
+	m_VpnUser     = m_pSheet->m_pEntry->m_VpnUser;
+	m_VpnPass     = m_pSheet->m_pEntry->m_VpnPass;
+	m_VpnPsk      = m_pSheet->m_pEntry->m_VpnPsk;
 	m_ProxyCmd    = m_pSheet->m_pEntry->m_ProxyCmd;
 	m_ProxySsh    = m_pSheet->m_pEntry->m_ProxySsh;
 	m_SSL_Keep    = m_pSheet->m_pEntry->m_ProxySSLKeep;
@@ -301,6 +311,11 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxyPass = m_ProxyPass;
 	m_pSheet->m_pEntry->m_ProxyCmd  = m_ProxyCmd;
 	m_pSheet->m_pEntry->m_ProxySsh  = m_ProxySsh;
+	m_pSheet->m_pEntry->m_VpnEnable = m_VpnEnable;
+	m_pSheet->m_pEntry->m_VpnServer = m_VpnServer;
+	m_pSheet->m_pEntry->m_VpnUser   = m_VpnUser;
+	m_pSheet->m_pEntry->m_VpnPass   = m_VpnPass;
+	m_pSheet->m_pEntry->m_VpnPsk    = m_VpnPsk;
 	m_pSheet->m_pEntry->m_Memo      = m_Memo;
 	m_pSheet->m_pEntry->m_Group     = m_Group;
 	m_pSheet->m_pEntry->m_HostNameProvs  = m_HostName;
@@ -449,6 +464,11 @@ void CSerEntPage::OnProxySet()
 	dlg.m_UsePassDlg = m_UseProxyDlg;
 	dlg.m_ProxyCmd   = m_ProxyCmd;
 	dlg.m_ProxySsh   = m_ProxySsh;
+	dlg.m_VpnEnable  = m_VpnEnable;
+	dlg.m_VpnServer  = m_VpnServer;
+	dlg.m_VpnUser    = m_VpnUser;
+	dlg.m_VpnPass    = m_VpnPass;
+	dlg.m_VpnPsk     = m_VpnPsk;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -462,6 +482,11 @@ void CSerEntPage::OnProxySet()
 	m_UseProxyDlg = dlg.m_UsePassDlg;
 	m_ProxyCmd    = dlg.m_ProxyCmd;
 	m_ProxySsh    = dlg.m_ProxySsh;
+	m_VpnEnable   = dlg.m_VpnEnable;
+	m_VpnServer   = dlg.m_VpnServer;
+	m_VpnUser     = dlg.m_VpnUser;
+	m_VpnPass     = dlg.m_VpnPass;
+	m_VpnPsk      = dlg.m_VpnPsk;
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_ENTRY | UMOD_PARAMTAB);

@@ -33,6 +33,11 @@ public:
 	BOOL m_SshFlag;
 	BOOL m_SshDisable;
 	CString m_ProxySsh;
+	BOOL m_VpnEnable;
+	CString m_VpnServer;
+	CString m_VpnUser;
+	CString m_VpnPass;
+	CString m_VpnPsk;
 
 	CComboBoxHis m_ServerCombo;
 	CComboBoxHis m_UserCombo;

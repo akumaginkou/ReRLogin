@@ -36,6 +36,11 @@ public:
 	CString m_ProxyPass;
 	CString m_ProxyCmd;
 	CString m_ProxySsh;
+	BOOL m_VpnEnable;
+	CString m_VpnServer;
+	CString m_VpnUser;
+	CString m_VpnPass;
+	CString m_VpnPsk;
 	CString m_ExtEnvStr;
 	CString m_BeforeEntry;
 	BOOL m_UsePassDlg;

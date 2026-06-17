@@ -30,6 +30,11 @@ CProxyDlg::CProxyDlg(CWnd* pParent /*=NULL*/)
 	m_SshFlag    = FALSE;
 	m_SshDisable = FALSE;
 	m_ProxySsh   = _T("");
+	m_VpnEnable  = FALSE;
+	m_VpnServer  = _T("");
+	m_VpnUser    = _T("");
+	m_VpnPass    = _T("");
+	m_VpnPsk     = _T("");
 }
 
 CProxyDlg::~CProxyDlg()
@@ -55,6 +60,11 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PROXYCMD, m_ProxyCmdCombo);
 	DDX_Check(pDX, IDC_CHECK3, m_SshFlag);
 	DDX_CBStringExact(pDX, IDC_PROXYSSH, m_ProxySsh);
+	DDX_Check(pDX, IDC_VPN_ENABLE, m_VpnEnable);
+	DDX_Text(pDX, IDC_VPN_SERVER, m_VpnServer);
+	DDX_Text(pDX, IDC_VPN_USER, m_VpnUser);
+	DDX_Text(pDX, IDC_VPN_PASS, m_VpnPass);
+	DDX_Text(pDX, IDC_VPN_PSK, m_VpnPsk);
 }
 
 
