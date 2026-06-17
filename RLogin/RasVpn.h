@@ -50,6 +50,11 @@ public:
 	// run that crashed before HangUp(). Call once at application start.
 	static void CleanupOrphans();
 
+	DWORD GetLastRasError() const { return m_lastError; }
+	// NAT-T (L2TP/IPsec behind NAT): registry helpers.
+	static BOOL IsNatTEnabled();
+	static BOOL EnableNatTElevated(CString &msg);
+
 	static const TCHAR ENTRY_PREFIX[];	// "RLoginTmp_"
 
 protected:
@@ -62,4 +67,5 @@ protected:
 	DWORD    m_ifIndex4;
 	DWORD    m_ifIndex6;
 	int      m_refCount;
+	DWORD    m_lastError;	// last RAS error from Dial (e.g. 789)
 };

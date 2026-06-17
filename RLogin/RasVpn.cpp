@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include <iphlpapi.h>
+#include <shellapi.h>
 #include "RasVpn.h"
 
 #pragma comment(lib, "rasapi32.lib")
@@ -25,6 +26,7 @@ CRasVpn::CRasVpn()
 	m_ifIndex4 = 0;
 	m_ifIndex6 = 0;
 	m_refCount = 0;
+	m_lastError = 0;
 }
 
 CRasVpn::~CRasVpn()
@@ -156,6 +158,7 @@ BOOL CRasVpn::Dial(LPCTSTR server, LPCTSTR user, LPCTSTR pass, LPCTSTR psk, int 
 	// Blocking dial: with a NULL notifier RasDial does not return until the
 	// connection is established or fails.
 	rc = RasDial(NULL, NULL, &dp, 0, NULL, &m_hConn);
+	m_lastError = rc;
 	SecureZeroMemory(&dp, sizeof(dp));
 
 	if ( rc != ERROR_SUCCESS ) {
@@ -303,4 +306,64 @@ void CRasVpn::CleanupOrphans()
 	}
 
 	free(list);
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// NAT-T: L2TP/IPsec behind NAT needs
+//   HKLM\SYSTEM\CurrentControlSet\Services\PolicyAgent
+//     \AssumeUDPEncapsulationContextOnSendRule = 2   (DWORD)  + reboot.
+
+BOOL CRasVpn::IsNatTEnabled()
+{
+	HKEY hKey;
+	DWORD val = 0, sz = sizeof(val), type = 0;
+	BOOL ok = FALSE;
+	if ( RegOpenKeyEx(HKEY_LOCAL_MACHINE,
+			_T("SYSTEM\\CurrentControlSet\\Services\\PolicyAgent"),
+			0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS ) {
+		if ( RegQueryValueEx(hKey, _T("AssumeUDPEncapsulationContextOnSendRule"),
+				NULL, &type, (LPBYTE)&val, &sz) == ERROR_SUCCESS && type == REG_DWORD && val == 2 )
+			ok = TRUE;
+		RegCloseKey(hKey);
+	}
+	return ok;
+}
+
+BOOL CRasVpn::EnableNatTElevated(CString &msg)
+{
+	// HKLM write needs elevation -> run reg.exe via UAC (verb "runas").
+	SHELLEXECUTEINFO sei;
+	ZeroMemory(&sei, sizeof(sei));
+	sei.cbSize = sizeof(sei);
+	sei.fMask  = SEE_MASK_NOCLOSEPROCESS;
+	sei.lpVerb = _T("runas");
+	sei.lpFile = _T("reg.exe");
+	sei.lpParameters = _T("add \"HKLM\\SYSTEM\\CurrentControlSet\\Services\\PolicyAgent\" ")
+		_T("/v AssumeUDPEncapsulationContextOnSendRule /t REG_DWORD /d 2 /f");
+	sei.nShow = SW_HIDE;
+
+	if ( !ShellExecuteEx(&sei) ) {
+		DWORD e = ::GetLastError();
+		if ( e == ERROR_CANCELLED )
+			msg = _T("NAT-T setup was cancelled (administrator rights are required).");
+		else
+			msg.Format(_T("Could not start the NAT-T setup (error %u)."), e);
+		return FALSE;
+	}
+
+	if ( sei.hProcess != NULL ) {
+		WaitForSingleObject(sei.hProcess, 15000);
+		DWORD code = 1;
+		GetExitCodeProcess(sei.hProcess, &code);
+		CloseHandle(sei.hProcess);
+		if ( code == 0 ) {
+			msg = _T("NAT-T has been enabled.\n\nPlease REBOOT Windows, then reconnect.");
+			return TRUE;
+		}
+		msg.Format(_T("reg.exe returned %u; NAT-T may not have been set."), code);
+		return FALSE;
+	}
+	msg = _T("NAT-T setup was launched. Reboot after it completes.");
+	return TRUE;
 }

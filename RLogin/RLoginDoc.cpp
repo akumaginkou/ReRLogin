@@ -2387,6 +2387,18 @@ SKIPINPUT:
 			CString msg;
 			msg.Format(_T("VPN connect failed for '%s'\n%s"), (LPCTSTR)m_ServerEntry.m_EntryName, (LPCTSTR)verr);
 			::AfxMessageBox(msg, MB_ICONERROR);
+			if ( m_pRasVpn->GetLastRasError() == 789 &&
+				 (m_ServerEntry.m_VpnStrategy == 0 || m_ServerEntry.m_VpnStrategy == 1) &&
+				 !CRasVpn::IsNatTEnabled() ) {
+				if ( ::AfxMessageBox(_T("L2TP/IPsec failed with RAS 789, which usually means ")
+						_T("NAT-T must be enabled (this PC is behind NAT).\n\nEnable NAT-T now? ")
+						_T("Windows will ask for administrator rights, and you must REBOOT afterward."),
+						MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+					CString nmsg;
+					CRasVpn::EnableNatTElevated(nmsg);
+					::AfxMessageBox(nmsg, MB_ICONINFORMATION);
+				}
+			}
 			delete m_pRasVpn;
 			m_pRasVpn = NULL;
 			SocketClose();
