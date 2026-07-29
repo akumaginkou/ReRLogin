@@ -8,7 +8,7 @@
 // (big-endian Put/Get = network byte order). No sockets, no OpenSSL here.
 //
 // Later milestones add: UDP transport (:500/:4500), DH/PSK crypto, NAT-T,
-// ESP, L2TP and PPP. See the design notes "ReRLogin 接続捨てVPN".
+// ESP, L2TP and PPP. See the ReRLogin per-session VPN design notes.
 //////////////////////////////////////////////////////////////////////
 
 #pragma once
