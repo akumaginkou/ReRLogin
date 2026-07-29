@@ -1,16 +1,16 @@
 name: build-windows-cloud
 
 # Builds ReRLogin (Release|x64) on GitHub-hosted Windows runners (free on a
-# public repo) - no self-hosted machine required. Manual trigger only.
-# windows-latest ships Visual Studio 2022 (v143) + Windows SDK, chocolatey,
-# git and curl, which is everything this build needs.
+# public repo). Pinned to windows-2022 (VS2022 / v143 / Win11 SDK) for a
+# stable toolchain; the Windows SDK version is auto-detected so the build
+# does not break when the image's exact SDK changes. Manual dispatch only.
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 120
     steps:
       - name: Checkout
@@ -25,7 +25,7 @@ jobs:
             RLogin/zlib-1.3.2
             RLogin/libiconv-1.18
             RLogin/nettle-2.0
-          key: rerlogin-deps-cloud-x64-openssl3.5.6-zlib1.3.2-iconv1.18-nettle2.0-v1
+          key: rerlogin-deps-cloud-x64-openssl3.5.6-zlib1.3.2-iconv1.18-nettle2.0-v2-win2022
 
       - name: Install Perl and NASM (for OpenSSL)
         shell: pwsh
@@ -35,6 +35,17 @@ jobs:
           if (-not (Get-Command nasm -ErrorAction SilentlyContinue)) { choco install nasm -y --no-progress }
           $nasm = 'C:\Program Files\NASM'; if (Test-Path $nasm) { Add-Content -Path $env:GITHUB_PATH -Value $nasm }
           $perl = 'C:\Strawberry\perl\bin'; if (Test-Path $perl) { Add-Content -Path $env:GITHUB_PATH -Value $perl }
+
+      - name: Detect Windows SDK and v143 toolset
+        shell: pwsh
+        run: |
+          $inc = 'C:\Program Files (x86)\Windows Kits\10\Include'
+          if (-not (Test-Path $inc)) { throw "Windows Kits include dir not found" }
+          $sdk = Get-ChildItem $inc -Directory | Where-Object { $_.Name -match '^10\.0\.' } |
+                 Sort-Object { [version]$_.Name } | Select-Object -Last 1
+          if (-not $sdk) { throw "No 10.0.* Windows SDK found" }
+          Write-Host "Windows SDK: $($sdk.Name)"
+          Add-Content -Path $env:GITHUB_ENV -Value "WINSDK=$($sdk.Name)"
 
       - name: Build dependencies
         if: steps.cache-deps.outputs.cache-hit != 'true'
@@ -64,7 +75,7 @@ jobs:
         shell: cmd
         working-directory: RLogin
         run: |
-          "%MSBUILD%" RLogin.vcxproj /m /t:build /p:Configuration=Release;Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0.22621.0 /p:RunCodeAnalysis=false
+          "%MSBUILD%" RLogin.vcxproj /m /t:build /p:Configuration=Release;Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=%WINSDK% /p:RunCodeAnalysis=false
 
       - name: Verify output
         shell: pwsh
