@@ -178,6 +178,7 @@ BOOL CProxyDlg::OnInitDialog()
 		pVpnProto->AddString(_T("IKEv2"));
 		pVpnProto->AddString(_T("SSTP"));
 		pVpnProto->AddString(_T("PPTP"));
+		pVpnProto->AddString(_T("L2TP/IPsec (userspace, non-admin)"));
 		pVpnProto->SetCurSel(m_VpnStrategy);
 	}
 

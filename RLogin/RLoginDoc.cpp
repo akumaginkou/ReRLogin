@@ -2380,9 +2380,12 @@ SKIPINPUT:
 	if ( m_ServerEntry.m_VpnEnable && !m_ServerEntry.m_VpnServer.IsEmpty() ) {
 		CString verr;
 
-		m_pVpn = CVpnProvider::Create((EVpnKind)m_ServerEntry.m_VpnKind);
-		if ( m_pVpn == NULL )
-			m_pVpn = CVpnProvider::Create(VPN_RAS_L2TP);	// default = RAS compat
+		EVpnKind vkind = (EVpnKind)m_ServerEntry.m_VpnKind;
+		if ( m_ServerEntry.m_VpnStrategy == 5 )	// "userspace" item in the strategy combo
+			vkind = VPN_L2TP_US;
+		if ( vkind == VPN_NONE )
+			vkind = VPN_RAS_L2TP;			// default = RAS compat
+		m_pVpn = CVpnProvider::Create(vkind);
 
 		if ( m_pVpn == NULL || !m_pVpn->Dial(this, verr) ) {
 			if ( m_pVpn != NULL ) {
