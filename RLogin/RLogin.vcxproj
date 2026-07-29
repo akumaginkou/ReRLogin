@@ -309,6 +309,7 @@ if exist LICENSE ( powershell Compress-Archive -Path '$(OutDir)$(TargetName)$(Ta
     <ClCompile Include="VpnL2tpIpsec.cpp" />
     <ClCompile Include="VpnIke.cpp" />
     <ClCompile Include="VpnCrypto.cpp" />
+    <ClCompile Include="VpnIkeMM.cpp" />
     <ClCompile Include="Fifo.cpp" />
     <ClCompile Include="FileUpDown.cpp" />
     <ClCompile Include="FontParaDlg.cpp" />
@@ -426,6 +427,7 @@ if exist LICENSE ( powershell Compress-Archive -Path '$(OutDir)$(TargetName)$(Ta
     <ClInclude Include="VpnL2tpIpsec.h" />
     <ClInclude Include="VpnIke.h" />
     <ClInclude Include="VpnCrypto.h" />
+    <ClInclude Include="VpnIkeMM.h" />
     <ClInclude Include="Fifo.h" />
     <ClInclude Include="FileUpDown.h" />
     <ClInclude Include="FontParaDlg.h" />

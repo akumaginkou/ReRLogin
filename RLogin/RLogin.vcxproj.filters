@@ -84,6 +84,9 @@
     <ClCompile Include="VpnCrypto.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="VpnIkeMM.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="FontParaDlg.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -411,6 +414,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="VpnCrypto.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="VpnIkeMM.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="FontParaDlg.h">

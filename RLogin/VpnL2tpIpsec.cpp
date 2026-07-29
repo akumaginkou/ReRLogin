@@ -11,6 +11,7 @@
 #include "VpnL2tpIpsec.h"
 #include "VpnIke.h"
 #include "VpnCrypto.h"
+#include "VpnIkeMM.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -30,49 +31,33 @@ CVpnProviderL2tpUs::~CVpnProviderL2tpUs()
 
 BOOL CVpnProviderL2tpUs::Dial(CRLoginDoc *pDoc, CString &errMsg)
 {
-	// -------- M1 smoke test: build an IKEv1 Main Mode message 1 (SA) --------
-	// Proves the ISAKMP/IKEv1 codec compiles, links and produces a message.
-	// The actual UDP transport, DH/PSK crypto, NAT-T, ESP, L2TP and PPP land
-	// in later milestones.
-	static const CIkeProposalP1 s_props[] = {
-		{ IKE_ENC_AES_CBC,  256, IKE_HASH_SHA2_256, IKE_GROUP_MODP2048, 28800 },
-		{ IKE_ENC_AES_CBC,  128, IKE_HASH_SHA1,     IKE_GROUP_MODP1024, 28800 },
-		{ IKE_ENC_3DES_CBC, 0,   IKE_HASH_SHA1,     IKE_GROUP_MODP1024, 28800 },
-	};
+	// -------- M2a: run IKEv1 Main Mode messages 1..4 against the router -----
+	if ( pDoc == NULL ) { errMsg = _T("VPN: no document"); return FALSE; }
+	CServerEntry &se = pDoc->m_ServerEntry;
 
-	BYTE icookie[8]; ZeroMemory(icookie, sizeof(icookie));  // real cookie in M2
-	BYTE rcookie[8]; ZeroMemory(rcookie, sizeof(rcookie));
+	if ( se.m_VpnServer.IsEmpty() ) { errMsg = _T("VPN: server is empty"); return FALSE; }
 
-	CBuffer sa;
-	CIkePl::BuildPhase1SA(sa, s_props, _countof(s_props));
+	CBuffer psk;
+	CVpnCrypto::PskBytes(se.m_VpnPsk, psk);
 
-	CIkeBuilder ike;
-	ike.AddPayload(IKE_PL_SA, sa);
+	CIkeMainMode mm(pDoc);
+	mm.SetPsk(psk.GetPtr(), psk.GetSize());
 
-	CBuffer mm1;
-	ike.Finish(icookie, rcookie, IKE_XCHG_IDPROT, 0, 0, mm1);
-
-	if ( pDoc != NULL )
-		pDoc->LogDebug("VpnL2tpUs: built IKEv1 MM1 (%d bytes, %d proposals)\n",
-					   mm1.GetSize(), (int)_countof(s_props));
-
-	// M2 crypto smoke: DH keypair + PSK bytes + prf (links VpnCrypto against
-	// the project's OpenSSL). The real Main Mode state machine comes next.
-	CVpnCrypto::CDh dh;
-	CBuffer dhPub, pskb;
-	if ( dh.Init(IKE_GROUP_MODP1024) && dh.GetPublic(dhPub) ) {
-		CVpnCrypto::PskBytes(pDoc != NULL ? (LPCTSTR)pDoc->m_ServerEntry.m_VpnPsk : _T(""), pskb);
-		BYTE mac[64];
-		CVpnCrypto::Hmac(IKE_HASH_SHA1, pskb.GetPtr(), pskb.GetSize(),
-						 dhPub.GetPtr(), dhPub.GetSize(), mac);
-		if ( pDoc != NULL )
-			pDoc->LogDebug("VpnL2tpUs: DH modp1024 pub=%d bytes, psk=%d bytes (crypto OK)\n",
-						   dhPub.GetSize(), pskb.GetSize());
+	CIkePhase1 ph1;
+	if ( !mm.RunToMM4(se.m_VpnServer, ph1, errMsg) ) {
+		m_LastErrMsg = errMsg;
+		return FALSE;
 	}
 
-	errMsg.Format(_T("userspace L2TP/IPsec to '%s': not yet connectable ")
-				  _T("(M1 = IKE codec only; transport/crypto land in the next milestone)."),
-				  (LPCTSTR)(pDoc != NULL ? pDoc->m_ServerEntry.m_VpnServer : _T("")));
+	// M2a stops after key derivation; MM5/6 auth + ESP/L2TP/PPP are next.
+	if ( ph1.m_Sock != INVALID_SOCKET )
+		closesocket(ph1.m_Sock);
+
+	errMsg.Format(_T("userspace L2TP/IPsec to '%s': IKE Phase 1 (MM1-4) reached ")
+				  _T("[enc=%d hash=%d group=%d natT=%d]. MM5/6 auth + ESP/L2TP/PPP ")
+				  _T("land in the next milestone."),
+				  (LPCTSTR)se.m_VpnServer, ph1.m_EncAlgo, ph1.m_HashAlgo,
+				  ph1.m_Group, ph1.m_NatT);
 	m_LastErrMsg = errMsg;
 	return FALSE;
 }
