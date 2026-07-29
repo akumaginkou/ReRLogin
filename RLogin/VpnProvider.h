@@ -29,7 +29,8 @@ enum EVpnKind {
 	VPN_NONE      = 0,
 	VPN_RAS_L2TP  = 1,	// Windows RAS L2TP/IPsec (admin compat, IP_UNICAST_IF)
 	VPN_SSH       = 2,	// SSH tunnel (reuses Cssh::OpenTunnelSocket)
-	// future: VPN_SSTP, VPN_IKEV2, VPN_L2TP_US, VPN_SOCKS_TLS, VPN_MASQUE
+	VPN_L2TP_US   = 3,	// userspace L2TP/IPsec(PSK) (non-admin, VpnL2tpIpsec.*)
+	// future: VPN_SSTP, VPN_IKEV2, VPN_SOCKS_TLS, VPN_MASQUE
 };
 
 class CVpnProvider

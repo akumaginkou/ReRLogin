@@ -10,6 +10,7 @@
 #include "RasVpn.h"
 #include "VpnProvider.h"
 #include "VpnSsh.h"
+#include "VpnL2tpIpsec.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -113,6 +114,7 @@ CVpnProvider *CVpnProvider::Create(EVpnKind kind)
 	switch ( kind ) {
 	case VPN_RAS_L2TP: return new CVpnProviderRasCompat;
 	case VPN_SSH:      return new CVpnProviderSsh;
+	case VPN_L2TP_US:  return new CVpnProviderL2tpUs;
 	default:           return NULL;
 	}
 }
