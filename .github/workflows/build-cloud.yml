@@ -1,0 +1,81 @@
+name: build-windows-cloud
+
+# Builds ReRLogin (Release|x64) on GitHub-hosted Windows runners (free on a
+# public repo) - no self-hosted machine required. Manual trigger only.
+# windows-latest ships Visual Studio 2022 (v143) + Windows SDK, chocolatey,
+# git and curl, which is everything this build needs.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache built dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            RLogin/openssl-3.5.6
+            RLogin/zlib-1.3.2
+            RLogin/libiconv-1.18
+            RLogin/nettle-2.0
+          key: rerlogin-deps-cloud-x64-openssl3.5.6-zlib1.3.2-iconv1.18-nettle2.0-v1
+
+      - name: Install Perl and NASM (for OpenSSL)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Command perl -ErrorAction SilentlyContinue)) { choco install strawberryperl -y --no-progress }
+          if (-not (Get-Command nasm -ErrorAction SilentlyContinue)) { choco install nasm -y --no-progress }
+          $nasm = 'C:\Program Files\NASM'; if (Test-Path $nasm) { Add-Content -Path $env:GITHUB_PATH -Value $nasm }
+          $perl = 'C:\Strawberry\perl\bin'; if (Test-Path $perl) { Add-Content -Path $env:GITHUB_PATH -Value $perl }
+
+      - name: Build dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        shell: cmd
+        run: ci\build-deps.cmd
+
+      - name: Locate MSBuild
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+          if (-not $msbuild) { throw "MSBuild not found" }
+          Write-Host "MSBuild: $msbuild"
+          Add-Content -Path $env:GITHUB_ENV -Value "MSBUILD=$msbuild"
+
+      - name: Patch OpenSSL refcount.h for C++ consumers
+        shell: pwsh
+        run: |
+          $f = 'RLogin/openssl-3.5.6/include/internal/refcount.h'
+          $c = Get-Content $f -Raw
+          $c = $c -replace '_InterlockedExchangeAdd\(&refcnt->val,',    '_InterlockedExchangeAdd((long volatile *)&refcnt->val,'
+          $c = $c -replace '_InterlockedExchangeAdd_nf\(&refcnt->val,', '_InterlockedExchangeAdd_nf((long volatile *)&refcnt->val,'
+          Set-Content $f $c -NoNewline
+          Write-Host "patched refcount.h"
+
+      - name: Build ReRLogin (Release x64)
+        shell: cmd
+        working-directory: RLogin
+        run: |
+          "%MSBUILD%" RLogin.vcxproj /m /t:build /p:Configuration=Release;Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0.22621.0 /p:RunCodeAnalysis=false
+
+      - name: Verify output
+        shell: pwsh
+        run: |
+          $exe = "RLogin/Release/x64/RLogin.exe"
+          if (-not (Test-Path $exe)) { throw "RLogin.exe was not produced" }
+          Write-Host "OK: $((Get-Item $exe).FullName) ($((Get-Item $exe).Length) bytes)"
+
+      - name: Upload RLogin.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLogin-Release-x64
+          path: RLogin/Release/x64/RLogin.exe
+          if-no-files-found: error
