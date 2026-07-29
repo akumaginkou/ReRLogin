@@ -125,6 +125,7 @@ public:
 	CBuffer m_ProxyBuff;
 	BOOL m_ProxyCmdMode;
 	class CExtSocket *m_pSshProxy;
+	class CVpnProvider *m_pVpnProvider;	// per-session VPN provider (NULL = none)
 
 	class CHttp2Ctx *m_pHttp2Ctx;
 	class CHttp3Ctx *m_pHttp3Ctx;

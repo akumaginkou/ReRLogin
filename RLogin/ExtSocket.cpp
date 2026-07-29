@@ -13,6 +13,7 @@
 #include "PassDlg.h"
 #include "ssh.h"
 #include "HttpCtx.h"
+#include "VpnProvider.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -47,6 +48,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_ProxyCmdMode = FALSE;
 
 	m_pSshProxy = NULL;
+	m_pVpnProvider = NULL;
 
 	m_SSL_mode  = 0;
 	m_SSL_pCtx  = NULL;
@@ -82,6 +84,16 @@ void CExtSocket::Destroy()
 
 CFifoBase *CExtSocket::FifoLinkLeft()
 {
+	// Per-session VPN provider (stream/packet tunnels). The provider may
+	// return a replacement Left stage, or (SSH provider) wire m_pSshProxy
+	// and return NULL so one of the branches below builds the stage.
+	if ( m_pVpnProvider != NULL ) {
+		CFifoBase *pVpn = m_pVpnProvider->CreateLeftStage(m_pDocument, this,
+								m_RealHostAddr, m_RealHostPort, GetFamily());
+		if ( pVpn != NULL )
+			return pVpn;
+	}
+
 	if ( m_ProxyCmdMode )
 		return new CFifoPipe(m_pDocument, this);
 	else if ( m_pSshProxy != NULL )

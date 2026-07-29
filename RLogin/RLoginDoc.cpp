@@ -9,7 +9,7 @@
 #include "RLoginView.h"
 #include "TextRam.h"
 #include "ExtSocket.h"
-#include "RasVpn.h"
+#include "VpnProvider.h"
 #include "Login.h"
 #include "Telnet.h"
 #include "Ssh.h"
@@ -87,7 +87,7 @@ CRLoginDoc::CRLoginDoc()
 {
 	m_DocSeqNumber = 0;
 	m_pSock = NULL;
-	m_pRasVpn = NULL;
+	m_pVpn = NULL;
 	m_TextRam.m_pDocument = this;
 	m_pLogFile = NULL;
 	m_pBPlus = NULL;
@@ -2372,42 +2372,31 @@ SKIPINPUT:
 	case PROTO_PIPE:    m_pSock = new CPipeSock(this);   break; // pipe console
 	}
 
-	// Per-session L2TP/IPsec(PSK) VPN: bring the tunnel up *before* the
-	// socket is opened, then bind only this session to the VPN adapter via
-	// IP_UNICAST_IF (see CFifoSocket::SocketLoop). The tunnel is a split
-	// tunnel, so the rest of the system is unaffected.
+	// Per-session VPN: bring the tunnel up *before* the socket is opened, via
+	// a pluggable provider (RAS L2TP/IPsec compat, SSH tunnel, ...). The
+	// provider either binds this socket (RAS -> IP_UNICAST_IF) or supplies a
+	// replacement Left FIFO stage (see CExtSocket::FifoLinkLeft). Only this
+	// session is affected; nothing is left configured in Windows.
 	if ( m_ServerEntry.m_VpnEnable && !m_ServerEntry.m_VpnServer.IsEmpty() ) {
-		DWORD if4 = 0, if6 = 0;
 		CString verr;
 
-		m_pRasVpn = new CRasVpn;
-		if ( !m_pRasVpn->Dial(m_ServerEntry.m_VpnServer, m_ServerEntry.m_VpnUser,
-							  m_ServerEntry.m_VpnPass, m_ServerEntry.m_VpnPsk, m_ServerEntry.m_VpnStrategy, m_ServerEntry.m_VpnAuth,
-							  if4, if6, verr) ) {
-			CString msg;
-			msg.Format(_T("VPN connect failed for '%s'\n%s"), (LPCTSTR)m_ServerEntry.m_EntryName, (LPCTSTR)verr);
-			::AfxMessageBox(msg, MB_ICONERROR);
-			if ( m_pRasVpn->GetLastRasError() == 789 &&
-				 (m_ServerEntry.m_VpnStrategy == 0 || m_ServerEntry.m_VpnStrategy == 1) &&
-				 !CRasVpn::IsNatTEnabled() ) {
-				if ( ::AfxMessageBox(_T("L2TP/IPsec failed with RAS 789, which usually means ")
-						_T("NAT-T must be enabled (this PC is behind NAT).\n\nEnable NAT-T now? ")
-						_T("Windows will ask for administrator rights, and you must REBOOT afterward."),
-						MB_ICONQUESTION | MB_YESNO) == IDYES ) {
-					CString nmsg;
-					CRasVpn::EnableNatTElevated(nmsg);
-					::AfxMessageBox(nmsg, MB_ICONINFORMATION);
-				}
+		m_pVpn = CVpnProvider::Create((EVpnKind)m_ServerEntry.m_VpnKind);
+		if ( m_pVpn == NULL )
+			m_pVpn = CVpnProvider::Create(VPN_RAS_L2TP);	// default = RAS compat
+
+		if ( m_pVpn == NULL || !m_pVpn->Dial(this, verr) ) {
+			if ( m_pVpn != NULL ) {
+				m_pVpn->ShowDialError(this);
+				delete m_pVpn;
+				m_pVpn = NULL;
 			}
-			delete m_pRasVpn;
-			m_pRasVpn = NULL;
 			SocketClose();
 			return FALSE;
 		}
 
-		m_pRasVpn->AddRef();
-		m_pSock->m_VpnIfIndex4 = if4;
-		m_pSock->m_VpnIfIndex6 = if6;
+		m_pVpn->AddRef();
+		m_pVpn->ConfigureSocket(m_pSock);	// RAS sets IP_UNICAST_IF ifindex
+		m_pSock->m_pVpnProvider = m_pVpn;	// consulted by FifoLinkLeft()
 	}
 
 	switch(ProxyMode) {
@@ -2454,11 +2443,11 @@ void CRLoginDoc::SocketClose()
 
 	if ( m_pSock == NULL ) {
 		// Socket already gone, but make sure the VPN tunnel is not leaked.
-		if ( m_pRasVpn != NULL ) {
-			if ( m_pRasVpn->Release() <= 0 )
-				m_pRasVpn->HangUp();
-			delete m_pRasVpn;
-			m_pRasVpn = NULL;
+		if ( m_pVpn != NULL ) {
+			if ( m_pVpn->Release() <= 0 )
+				m_pVpn->HangUp();
+			delete m_pVpn;
+			m_pVpn = NULL;
 		}
 		return;
 	}
@@ -2478,11 +2467,11 @@ void CRLoginDoc::SocketClose()
 
 	// Tear down the per-session VPN tunnel (last reference hangs up and
 	// deletes the ephemeral RAS entry).
-	if ( m_pRasVpn != NULL ) {
-		if ( m_pRasVpn->Release() <= 0 )
-			m_pRasVpn->HangUp();
-		delete m_pRasVpn;
-		m_pRasVpn = NULL;
+	if ( m_pVpn != NULL ) {
+		if ( m_pVpn->Release() <= 0 )
+			m_pVpn->HangUp();
+		delete m_pVpn;
+		m_pVpn = NULL;
 	}
 }
 void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)

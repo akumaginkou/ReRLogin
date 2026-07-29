@@ -784,6 +784,7 @@ public:
 	CString m_VpnPsk;
 	int m_VpnStrategy;		// 0=Auto 1=L2TP/IPsec 2=IKEv2 3=SSTP 4=PPTP
 	int m_VpnAuth;			// bit0=PAP bit1=CHAP bit2=MS-CHAPv2
+	int m_VpnKind;			// VPN provider: 0=RAS-L2TP(admin compat) 2=SSH-tunnel (EVpnKind)
 	CString m_Memo;
 	CString m_Group;
 	CString m_ScriptFile;
