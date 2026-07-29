@@ -10,6 +10,7 @@
 #include "VpnProvider.h"
 #include "VpnL2tpIpsec.h"
 #include "VpnIke.h"
+#include "VpnCrypto.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -54,6 +55,20 @@ BOOL CVpnProviderL2tpUs::Dial(CRLoginDoc *pDoc, CString &errMsg)
 	if ( pDoc != NULL )
 		pDoc->LogDebug("VpnL2tpUs: built IKEv1 MM1 (%d bytes, %d proposals)\n",
 					   mm1.GetSize(), (int)_countof(s_props));
+
+	// M2 crypto smoke: DH keypair + PSK bytes + prf (links VpnCrypto against
+	// the project's OpenSSL). The real Main Mode state machine comes next.
+	CVpnCrypto::CDh dh;
+	CBuffer dhPub, pskb;
+	if ( dh.Init(IKE_GROUP_MODP1024) && dh.GetPublic(dhPub) ) {
+		CVpnCrypto::PskBytes(pDoc != NULL ? (LPCTSTR)pDoc->m_ServerEntry.m_VpnPsk : _T(""), pskb);
+		BYTE mac[64];
+		CVpnCrypto::Hmac(IKE_HASH_SHA1, pskb.GetPtr(), pskb.GetSize(),
+						 dhPub.GetPtr(), dhPub.GetSize(), mac);
+		if ( pDoc != NULL )
+			pDoc->LogDebug("VpnL2tpUs: DH modp1024 pub=%d bytes, psk=%d bytes (crypto OK)\n",
+						   dhPub.GetSize(), pskb.GetSize());
+	}
 
 	errMsg.Format(_T("userspace L2TP/IPsec to '%s': not yet connectable ")
 				  _T("(M1 = IKE codec only; transport/crypto land in the next milestone)."),
