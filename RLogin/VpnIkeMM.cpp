@@ -387,7 +387,9 @@ BOOL CIkeMainMode::RunToMM4(LPCTSTR host, CIkePhase1 &ph1, CString &errMsg)
 
 	// SKEYID_d = prf(SKEYID, g^xy|CKY-I|CKY-R|0)
 	{
-		CBuffer d(tail); d.Put8Bit(0);
+		CBuffer d;
+		d.PutBuf(tail.GetPtr(), tail.GetSize());
+		d.Put8Bit(0);
 		Prf(ph1.m_SkeyId.GetPtr(), ph1.m_SkeyId.GetSize(), d.GetPtr(), d.GetSize(),
 			ph1.m_SkeyId_d, ph1.m_HashAlgo);
 	}
