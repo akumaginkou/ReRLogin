@@ -60,6 +60,7 @@ protected:
 	SOCKET   m_Sock;
 	unsigned long m_DstIp;      // network order
 	int      m_DstPort;         // 500, later 4500
+	int      m_LastWsa;         // last WinSock error (diagnostics)
 
 	// transport helpers
 	BOOL SockOpen(LPCTSTR host, CString &errMsg);

@@ -29,6 +29,12 @@ static const BYTE VID_NATT_DRAFT03[16] =
 #define IKE_NONCE_LEN   20
 #define IKE_RECV_MAX    4096
 
+static void IpToStr(unsigned long ip, char *out, int outlen)   // network-order ip
+{
+	const BYTE *b = (const BYTE *)&ip;
+	_snprintf_s(out, outlen, _TRUNCATE, "%d.%d.%d.%d", b[0], b[1], b[2], b[3]);
+}
+
 //////////////////////////////////////////////////////////////////////
 
 CIkePhase1::CIkePhase1()
@@ -48,6 +54,7 @@ CIkeMainMode::CIkeMainMode(CRLoginDoc *pDoc)
 	m_Sock = INVALID_SOCKET;
 	m_DstIp = 0;
 	m_DstPort = 500;
+	m_LastWsa = 0;
 }
 
 CIkeMainMode::~CIkeMainMode()
@@ -153,12 +160,16 @@ int CIkeMainMode::RecvRaw(BYTE *buf, int max, int msec)
 	tv.tv_usec = (msec % 1000) * 1000;
 
 	int s = select(0, &rf, NULL, NULL, &tv);
-	if ( s <= 0 )
-		return 0;                   // timeout / error
+	if ( s <= 0 ) {
+		m_LastWsa = (s < 0) ? WSAGetLastError() : 0;   // 0 = plain timeout
+		return 0;
+	}
 
 	int n = recv(m_Sock, (char *)buf, max, 0);
-	if ( n <= 0 )
+	if ( n <= 0 ) {
+		m_LastWsa = WSAGetLastError();                 // e.g. 10054 = ICMP unreachable
 		return -1;
+	}
 
 	if ( m_DstPort == 4500 ) {      // strip non-ESP marker
 		if ( n < 4 )
@@ -248,7 +259,18 @@ BOOL CIkeMainMode::RunToMM4(LPCTSTR host, CIkePhase1 &ph1, CString &errMsg)
 		if ( (rlen = RecvRaw(rbuf, sizeof(rbuf), 2500)) > 0 )
 			break;
 	}
-	if ( rlen <= 0 ) { errMsg = _T("VPN: no response to MM1 (Phase1)"); return FALSE; }
+	if ( rlen <= 0 ) {
+		char dip[32], lip4[32];
+		unsigned long lip = 0; int lport = 0;
+		IpToStr(m_DstIp, dip, sizeof(dip));
+		GetLocalAddr(lip, lport);
+		IpToStr(lip, lip4, sizeof(lip4));
+		errMsg.Format(_T("VPN: no response to MM1 (Phase1). dst=%S:%d local=%S:%d recvErr=%d\n")
+			_T("(recvErr 10054 = nothing listening on UDP500 at dst; ")
+			_T("recvErr 0 = MM1 sent but no reply -> unreachable/firewall, or the router rejected MM1)"),
+			dip, m_DstPort, lip4, lport, m_LastWsa);
+		return FALSE;
+	}
 
 	CIkeParser p2;
 	if ( !p2.Parse(rbuf, rlen) || p2.m_Exchange != IKE_XCHG_IDPROT ) {
