@@ -90,3 +90,5 @@ jobs:
           name: RLogin-Release-x64
           path: RLogin/Release/x64/RLogin.exe
           if-no-files-found: error
+          # Repeated CI builds pile up and exhaust the account artifact quota.
+          retention-days: 7
